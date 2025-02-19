@@ -7,7 +7,7 @@ import sklearn
 print("Scikit-learn version:", sklearn.__version__)
 
 # Load model yang sudah disimpan
-ttry:
+try:
     model_path = "random_forest_model.pkl"
     rf_model = joblib.load(model_path)
 except Exception as e:
