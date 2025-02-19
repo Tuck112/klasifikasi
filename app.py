@@ -4,7 +4,7 @@ import numpy as np
 
 # Load model dari pkl
 try:
-  model_path = "random_forest_model_compatible.pkl"
+    model_path = "random_forest_model_compatible.pkl"
     rf_model = joblib.load(model_path)
 except Exception as e:
     st.error(f"Error loading model: {e}")
