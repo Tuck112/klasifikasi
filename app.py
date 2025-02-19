@@ -3,7 +3,7 @@ import streamlit as st
 import numpy as np
 
 # Load model
-with open("random_forest_model.pkl", "rb") as file:
+with open("random_forest.pkl", "rb") as file:
     model = pickle.load(file)
 
 # Pastikan model memiliki metode predict()
