@@ -19,8 +19,9 @@ def load_data():
         df[col] = df[col].str.replace(r'[^0-9.]', '', regex=True)  # Hapus karakter selain angka dan titik
         df[col] = pd.to_numeric(df[col], errors='coerce')  # Konversi ke numerik, NaN jika gagal
     
-    # Mengisi nilai kosong dengan median
-    df.fillna(df.median(), inplace=True)
+    # Mengisi hanya kolom numerik dengan median
+    numeric_cols = df.select_dtypes(include=['number']).columns
+    df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
     
     # Perhitungan fitur tambahan
     df['Leg Power'] = (2.21 * df['Berat Badan'] * (df['Power Otot Tungkai'] / 100))
