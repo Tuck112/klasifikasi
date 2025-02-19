@@ -32,26 +32,26 @@ def load_data():
     # Klasifikasi Speed
     def classify_speed(row):
         if row['Gender'] == 'Pria':
-            return 'Beginner' if row['Speed'] >= 3.70 else 'Intermediate' if row['Speed'] < 3.50 else 'Advanced'
+            return 'Beginner' if row['Speed'] >= 3.70 else 'Intermediate' if row['Speed'] >= 3.31 else 'Advanced'
         else:
-            return 'Beginner' if row['Speed'] >= 3.90 else 'Intermediate' if row['Speed'] < 3.70 else 'Advanced'
+            return 'Beginner' if row['Speed'] >= 3.90 else 'Intermediate' if row['Speed'] >= 3.51 else 'Advanced'
     data['Speed Category'] = data.apply(classify_speed, axis=1)
     
     # Klasifikasi Leg Power
     def classify_leg_power(row):
         leg_power = row['Leg Power']
         if row['Gender'] == 'Pria':
-            return 'Advanced' if leg_power >= 79 else 'Intermediate' if leg_power < 79 else 'Beginner'
+            return 'Advanced' if leg_power >= 79 else 'Intermediate' if leg_power >= 65 else 'Beginner'
         else:
-            return 'Advanced' if leg_power >= 59 else 'Intermediate' if leg_power < 59 else 'Beginner'
+            return 'Advanced' if leg_power >= 59 else 'Intermediate' if leg_power >= 49 else 'Beginner'
     data['Leg Power Category'] = data.apply(classify_leg_power, axis=1)
     
     # Klasifikasi Hand Power
     def classify_handpower(row):
         if row['Gender'] == 'Pria':
-            return 'Beginner' if row['Hand Power'] >= 1.30 or row['Hand Power'] < 0.85 else 'Intermediate' if row['Hand Power'] < 1.15 else 'Advanced'
+            return 'Beginner' if row['Hand Power'] >= 1.30 or row['Hand Power'] < 0.85 else 'Intermediate' if row['Hand Power'] >= 0.85 else 'Advanced'
         else:
-            return 'Beginner' if row['Hand Power'] >= 1.25 or row['Hand Power'] < 0.80 else 'Intermediate' if row['Hand Power'] < 1.10 else 'Advanced'
+            return 'Beginner' if row['Hand Power'] >= 1.25 or row['Hand Power'] < 0.80 else 'Intermediate' if row['Hand Power'] >= 0.80 else 'Advanced'
     data['Hand Power Category'] = data.apply(classify_handpower, axis=1)
     
     # Tentukan kategori keseluruhan
@@ -61,14 +61,12 @@ def load_data():
 
 # Fungsi untuk melatih model
 def train_model(data):
-    features = data[['Leg Power', 'Hand Power', 'Speed', 'Endurance Category']]
+    features = data[['Leg Power', 'Hand Power', 'Speed']]
     target = data['Overall Category']
     
-    # Encoding target dan fitur kategori
+    # Encoding target
     label_encoder = LabelEncoder()
     target_encoded = label_encoder.fit_transform(target)
-    endurance_encoder = LabelEncoder()
-    data['Endurance Category'] = endurance_encoder.fit_transform(data['Endurance Category'])
     
     # Normalisasi fitur
     scaler = StandardScaler()
@@ -78,11 +76,11 @@ def train_model(data):
     model = RandomForestClassifier(n_estimators=30, max_depth=3, random_state=42)
     model.fit(features_scaled, target_encoded)
     
-    return model, scaler, label_encoder, endurance_encoder
+    return model, scaler, label_encoder
 
 # Load data dan latih model
 data = load_data()
-model, scaler, label_encoder, endurance_encoder = train_model(data)
+model, scaler, label_encoder = train_model(data)
 
 # Streamlit UI
 st.title("Klasifikasi Atlet berdasarkan Tes Fisik")
@@ -90,12 +88,9 @@ gender = st.selectbox("Pilih Gender", ["Pria", "Wanita"])
 leg_power = st.number_input("Masukkan Leg Power", min_value=0.0, format="%.2f")
 hand_power = st.number_input("Masukkan Hand Power", min_value=0.0, format="%.2f")
 speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f")
-endurance = st.number_input("Masukkan Endurance", min_value=0.0, format="%.2f")
 
 if st.button("Klasifikasikan"):
-    endurance_category = classify_vo2max({"Gender": gender, "Vo2 max": endurance})
-    endurance_encoded = endurance_encoder.transform([endurance_category])[0]
-    input_data = np.array([[leg_power, hand_power, speed, endurance_encoded]])
+    input_data = np.array([[leg_power, hand_power, speed]])
     input_scaled = scaler.transform(input_data)
     prediction = model.predict(input_scaled)
     predicted_category = label_encoder.inverse_transform(prediction)[0]
