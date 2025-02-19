@@ -29,6 +29,10 @@ def load_data():
             return 'Beginner' if row['Vo2 max'] <= 22 else 'Intermediate' if row['Vo2 max'] <= 33 else 'Advanced'
     data['Endurance Category'] = data.apply(classify_vo2max, axis=1)
     
+    # Encoding kategori Endurance
+    endurance_encoder = LabelEncoder()
+    data['Endurance Category'] = endurance_encoder.fit_transform(data['Endurance Category'])
+    
     # Klasifikasi Speed
     def classify_speed(row):
         if row['Gender'] == 'Pria':
@@ -57,18 +61,16 @@ def load_data():
     # Tentukan kategori keseluruhan
     data['Overall Category'] = data[['Endurance Category', 'Speed Category', 'Leg Power Category', 'Hand Power Category']].mode(axis=1)[0]
     
-    return data
+    return data, endurance_encoder
 
 # Fungsi untuk melatih model
 def train_model(data):
     features = data[['Leg Power', 'Hand Power', 'Speed', 'Endurance Category']]
     target = data['Overall Category']
     
-    # Encoding target dan fitur kategori
+    # Encoding target
     label_encoder = LabelEncoder()
     target_encoded = label_encoder.fit_transform(target)
-    endurance_encoder = LabelEncoder()
-    data['Endurance Category'] = endurance_encoder.fit_transform(data['Endurance Category'])
     
     # Normalisasi fitur
     scaler = StandardScaler()
@@ -78,11 +80,11 @@ def train_model(data):
     model = RandomForestClassifier(n_estimators=30, max_depth=3, random_state=42)
     model.fit(features_scaled, target_encoded)
     
-    return model, scaler, label_encoder, endurance_encoder
+    return model, scaler, label_encoder
 
 # Load data dan latih model
-data = load_data()
-model, scaler, label_encoder, endurance_encoder = train_model(data)
+data, endurance_encoder = load_data()
+model, scaler, label_encoder = train_model(data)
 
 # Streamlit UI
 st.title("Klasifikasi Atlet berdasarkan Tes Fisik")
