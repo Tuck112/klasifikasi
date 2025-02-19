@@ -1,91 +1,96 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, KFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-# Load dataset
+# Fungsi untuk memuat dan membersihkan data
 def load_data():
-    df = pd.read_csv("Hasil_Tes_Atlet_Porda.csv", delimiter=";", encoding="utf-8")
+    file_path = "Hasil_Tes_Atlet_Porda.csv"
+    data = pd.read_csv(file_path, delimiter=";", encoding="utf-8")
     
-    # Data Cleaning
-    columns_to_convert = ['Kelentukan', 'Kelincahan', 'Kecepatan', 'Hand Grip kanan',
-                          'Hand Grip Kiri', 'Vo2 max', 'Berat Badan', 'Power Otot Tungkai']
+    # Konversi tipe data numerik
+    columns_to_convert = ['Berat Badan', 'Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan', 'Vo2 max']
     for col in columns_to_convert:
-        df[col] = df[col].astype(str).str.replace(',', '.', regex=True)
-        df[col] = df[col].str.replace(r'[^0-9.]', '', regex=True)
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-        df[col] = df[col].fillna(0).astype(float)
+        data[col] = data[col].astype(str).str.replace(',', '.', regex=True)
+        data[col] = data[col].str.replace(r'[^0-9.]', '', regex=True)
+        data[col] = pd.to_numeric(data[col], errors='coerce').fillna(0)
     
-    df['Usia'] = df['Usia'].round().astype(int)
+    # Hitung fitur
+    data['Leg Power'] = 2.21 * data['Berat Badan'] * (data['Power Otot Tungkai'] / 100)
+    data['Hand Power'] = data['Hand Grip kanan'] / data['Hand Grip Kiri']
+    data['Speed'] = 20 / data['Kecepatan']
     
-    # Feature Engineering
-    df['Leg Power'] = (2.21 * df['Berat Badan'] * (df['Power Otot Tungkai'] / 100))
-    df['Hand Power'] = df['Hand Grip kanan'] / df['Hand Grip Kiri']
-    df['Speed'] = 20 / df['Kecepatan']
+    # Klasifikasi Endurance
+    def classify_vo2max(row):
+        if row['Gender'] == 'Pria':
+            return 'Beginner' if row['Vo2 max'] <= 24 else 'Intermediate' if row['Vo2 max'] <= 36 else 'Advanced'
+        else:
+            return 'Beginner' if row['Vo2 max'] <= 22 else 'Intermediate' if row['Vo2 max'] <= 33 else 'Advanced'
+    data['Endurance Category'] = data.apply(classify_vo2max, axis=1)
     
-    # Pastikan kategori klasifikasi dibuat sebelum encoding
-    if {'Endurance Category', 'Speed Category', 'Leg Power Category', 'Hand Power Category'}.issubset(df.columns):
-        df['Overall Category'] = df[['Endurance Category', 'Speed Category', 'Leg Power Category', 'Hand Power Category']].mode(axis=1)[0]
-    else:
-        st.error("Kolom kategori belum lengkap, pastikan semua kategori tersedia sebelum dikombinasikan.")
+    # Klasifikasi Speed
+    def classify_speed(row):
+        if row['Gender'] == 'Pria':
+            return 'Beginner' if row['Speed'] >= 3.70 else 'Intermediate' if row['Speed'] < 3.50 else 'Advanced'
+        else:
+            return 'Beginner' if row['Speed'] >= 3.90 else 'Intermediate' if row['Speed'] < 3.70 else 'Advanced'
+    data['Speed Category'] = data.apply(classify_speed, axis=1)
     
-    return df
+    # Klasifikasi Leg Power
+    def classify_leg_power(row):
+        leg_power = row['Leg Power']
+        if row['Gender'] == 'Pria':
+            return 'Advanced' if leg_power >= 79 else 'Intermediate' if leg_power < 79 else 'Beginner'
+        else:
+            return 'Advanced' if leg_power >= 59 else 'Intermediate' if leg_power < 59 else 'Beginner'
+    data['Leg Power Category'] = data.apply(classify_leg_power, axis=1)
+    
+    # Klasifikasi Hand Power
+    def classify_handpower(row):
+        if row['Gender'] == 'Pria':
+            return 'Beginner' if row['Hand Power'] >= 1.30 or row['Hand Power'] < 0.85 else 'Intermediate' if row['Hand Power'] < 1.15 else 'Advanced'
+        else:
+            return 'Beginner' if row['Hand Power'] >= 1.25 or row['Hand Power'] < 0.80 else 'Intermediate' if row['Hand Power'] < 1.10 else 'Advanced'
+    data['Hand Power Category'] = data.apply(classify_handpower, axis=1)
+    
+    # Tentukan kategori keseluruhan
+    data['Overall Category'] = data[['Endurance Category', 'Speed Category', 'Leg Power Category', 'Hand Power Category']].mode(axis=1)[0]
+    
+    return data
 
-# Encode Target Label
-def encode_labels(df):
-    if 'Overall Category' in df.columns and not df['Overall Category'].isnull().all():
-        label_encoder = LabelEncoder()
-        df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category'])
-        return df, label_encoder
-    else:
-        st.error("Kolom 'Overall Category' kosong atau tidak ditemukan dalam dataset. Pastikan semua kategori telah dihitung dengan benar.")
-        return df, None
-
-# Train Model with KFold
-def train_model(df):
-    features = df[['Leg Power', 'Hand Power', 'Speed', 'Vo2 max']]
-    target = df['Overall Category Encoded']
+# Fungsi untuk melatih model
+def train_model(data):
+    features = data[['Leg Power', 'Hand Power', 'Speed']]
+    target = data['Overall Category']
     
+    # Encoding target
+    label_encoder = LabelEncoder()
+    target_encoded = label_encoder.fit_transform(target)
+    
+    # Normalisasi fitur
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(features)
     
-    N = len(features_scaled)
-    k = min(10, max(2, int(np.sqrt(N))))
-    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    # Model Random Forest
+    model = RandomForestClassifier(n_estimators=30, max_depth=3, random_state=42)
+    model.fit(features_scaled, target_encoded)
     
-    rf_model = RandomForestClassifier(n_estimators=30, max_depth=3, min_samples_split=30,
-                                      min_samples_leaf=15, max_features="sqrt", bootstrap=True,
-                                      class_weight='balanced', random_state=42)
-    
-    for train_index, test_index in kf.split(features_scaled):
-        X_train, X_test = features_scaled[train_index], features_scaled[test_index]
-        y_train, y_test = target.iloc[train_index], target.iloc[test_index]
-        rf_model.fit(X_train, y_train)
-    
-    return rf_model, scaler
+    return model, scaler, label_encoder
 
-# Load and preprocess data
-df = load_data()
-df, label_encoder = encode_labels(df)
+# Load data dan latih model
+data = load_data()
+model, scaler, label_encoder = train_model(data)
 
-if label_encoder is not None:
-    model, scaler = train_model(df)
+# Streamlit UI
+st.title("Klasifikasi Atlet berdasarkan Tes Fisik")
+leg_power = st.number_input("Masukkan Leg Power", min_value=0.0, format="%.2f")
+hand_power = st.number_input("Masukkan Hand Power", min_value=0.0, format="%.2f")
+speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f")
 
-    # Streamlit UI
-    st.title("Klasifikasi Tingkat Atlet")
-    st.write("Masukkan nilai untuk menentukan tingkat atlet: Beginner, Intermediate, atau Advanced")
-
-    leg_power = st.number_input("Leg Power", min_value=0.0, max_value=500.0, step=0.1)
-    hand_power = st.number_input("Hand Power", min_value=0.0, max_value=5.0, step=0.01)
-    endurance = st.number_input("VO2 Max", min_value=0.0, max_value=100.0, step=0.1)
-    speed = st.number_input("Speed", min_value=0.0, max_value=10.0, step=0.01)
-
-    if st.button("Klasifikasikan"):
-        input_data = np.array([[leg_power, hand_power, speed, endurance]])
-        input_data_scaled = scaler.transform(input_data)
-        prediction_encoded = model.predict(input_data_scaled)[0]
-        prediction = label_encoder.inverse_transform([prediction_encoded])[0]
-        st.write(f"Hasil Klasifikasi: **{prediction}**")
+if st.button("Klasifikasikan"):
+    input_data = np.array([[leg_power, hand_power, speed]])
+    input_scaled = scaler.transform(input_data)
+    prediction = model.predict(input_scaled)
+    predicted_category = label_encoder.inverse_transform(prediction)[0]
+    st.success(f"Hasil Klasifikasi: {predicted_category}")
