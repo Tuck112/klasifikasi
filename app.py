@@ -3,7 +3,7 @@ import joblib
 import numpy as np
 
 # Load model dan encoder
-model_data = joblib.load("random_forest_model_compatible.pkl")
+model_data = joblib.load("random_forest_model.pkl")
 model = model_data['model']
 label_encoder = model_data['label_encoder']
 
