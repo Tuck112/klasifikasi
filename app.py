@@ -1,15 +1,16 @@
 import streamlit as st
-import joblib
+import json
 import numpy as np
-import sklearn
+from sklearn.ensemble import RandomForestClassifier
 
-# Pastikan kompatibilitas model
-print("Scikit-learn version:", sklearn.__version__)
-
-# Load model yang sudah disimpan
+# Load model dari JSON
 try:
-    model_path = "random_forest_model_fixed.pkl"
-    rf_model = joblib.load(model_path)
+    model_path = "random_forest_model.json"
+    with open(model_path, "r") as f:
+        rf_model_params = json.load(f)
+    
+    # Buat ulang model Random Forest dari JSON
+    rf_model = RandomForestClassifier(**rf_model_params)
 except Exception as e:
     st.error(f"Error loading model: {e}")
     rf_model = None
