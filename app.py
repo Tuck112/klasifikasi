@@ -1,23 +1,28 @@
-import pickle
 import streamlit as st
+import pickle
 import numpy as np
 
-# Load model Random Forest
+# Load trained model
 with open("random_forest_model.pkl", "rb") as file:
     model = pickle.load(file)
 
-st.title("Klasifikasi Atlet: Beginner, Intermediate, Advance")
+# Streamlit UI
+st.title("Athlete Classification using Random Forest")
+st.write("Enter the required values to classify the athlete's performance.")
 
-# Input dari pengguna
-leg_power = st.number_input("Leg Power", min_value=0.0, max_value=100.0, step=0.1)
-hand_power = st.number_input("Hand Power", min_value=0.0, max_value=100.0, step=0.1)
-speed = st.number_input("Speed", min_value=0.0, max_value=100.0, step=0.1)
-vo2_max = st.number_input("Vo2 Max", min_value=0.0, max_value=100.0, step=0.1)
+# Input fields
+leg_power = st.number_input("Leg Power", min_value=0.0, format="%.2f")
+hand_power = st.number_input("Hand Power", min_value=0.0, format="%.2f")
+endurance = st.number_input("Endurance (VO2 Max)", min_value=0.0, format="%.2f")
+speed = st.number_input("Speed", min_value=0.0, format="%.2f")
 
-# Prediksi
-if st.button("Prediksi Klasifikasi"):
-    input_data = np.array([[leg_power, hand_power, speed, vo2_max]])
+# Predict button
+if st.button("Classify Athlete"):
+    # Convert inputs to NumPy array
+    input_data = np.array([[leg_power, hand_power, endurance, speed]])
+    
+    # Make prediction
     prediction = model.predict(input_data)
-
-    class_mapping = {0: "Beginner", 1: "Intermediate", 2: "Advanced"}
-    st.write(f"**Hasil Klasifikasi:** {class_mapping[prediction[0]]}")
+    
+    # Display result
+    st.success(f"The athlete's classification is: **{prediction[0]}**")
