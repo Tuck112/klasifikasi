@@ -61,26 +61,28 @@ def load_data():
 
 # Fungsi untuk melatih model
 def train_model(data):
-    features = data[['Leg Power', 'Hand Power', 'Speed']]
+    features = data[['Leg Power', 'Hand Power', 'Speed', 'Endurance Category']]
     target = data['Overall Category']
     
-    # Encoding target
+    # Encoding target dan fitur kategori
     label_encoder = LabelEncoder()
     target_encoded = label_encoder.fit_transform(target)
+    endurance_encoder = LabelEncoder()
+    data['Endurance Encoded'] = endurance_encoder.fit_transform(data['Endurance Category'])
     
     # Normalisasi fitur
     scaler = StandardScaler()
-    features_scaled = scaler.fit_transform(features)
+    features_scaled = scaler.fit_transform(data[['Leg Power', 'Hand Power', 'Speed', 'Endurance Encoded']])
     
     # Model Random Forest
     model = RandomForestClassifier(n_estimators=30, max_depth=3, random_state=42)
     model.fit(features_scaled, target_encoded)
     
-    return model, scaler, label_encoder
+    return model, scaler, label_encoder, endurance_encoder
 
 # Load data dan latih model
 data = load_data()
-model, scaler, label_encoder = train_model(data)
+model, scaler, label_encoder, endurance_encoder = train_model(data)
 
 # Streamlit UI
 st.title("Klasifikasi Atlet berdasarkan Tes Fisik")
@@ -88,9 +90,10 @@ gender = st.selectbox("Pilih Gender", ["Pria", "Wanita"])
 leg_power = st.number_input("Masukkan Leg Power", min_value=0.0, format="%.2f")
 hand_power = st.number_input("Masukkan Hand Power", min_value=0.0, format="%.2f")
 speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f")
+endurance = st.selectbox("Masukkan Endurance", endurance_encoder.classes_)
 
 if st.button("Klasifikasikan"):
-    input_data = np.array([[leg_power, hand_power, speed]])
+    input_data = np.array([[leg_power, hand_power, speed, endurance_encoder.transform([endurance])[0]]])
     input_scaled = scaler.transform(input_data)
     prediction = model.predict(input_scaled)
     predicted_category = label_encoder.inverse_transform(prediction)[0]
