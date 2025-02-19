@@ -27,18 +27,21 @@ def load_data():
     df['Speed'] = 20 / df['Kecepatan']
     
     # Pastikan kategori klasifikasi dibuat sebelum encoding
-    df['Overall Category'] = df[['Endurance Category', 'Speed Category','Leg Power Category','Hand Power Category']].mode(axis=1)[0]
+    if {'Endurance Category', 'Speed Category', 'Leg Power Category', 'Hand Power Category'}.issubset(df.columns):
+        df['Overall Category'] = df[['Endurance Category', 'Speed Category', 'Leg Power Category', 'Hand Power Category']].mode(axis=1)[0]
+    else:
+        st.error("Kolom kategori belum lengkap, pastikan semua kategori tersedia sebelum dikombinasikan.")
     
     return df
 
 # Encode Target Label
 def encode_labels(df):
-    if 'Overall Category' in df.columns:
+    if 'Overall Category' in df.columns and not df['Overall Category'].isnull().all():
         label_encoder = LabelEncoder()
         df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category'])
         return df, label_encoder
     else:
-        st.error("Kolom 'Overall Category' tidak ditemukan dalam dataset. Pastikan semua kategori telah dihitung dengan benar.")
+        st.error("Kolom 'Overall Category' kosong atau tidak ditemukan dalam dataset. Pastikan semua kategori telah dihitung dengan benar.")
         return df, None
 
 # Train Model with KFold
