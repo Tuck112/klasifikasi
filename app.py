@@ -1,37 +1,23 @@
 import streamlit as st
+import joblib
 import numpy as np
-from joblib import load  # Gunakan joblib untuk memuat model
 
-# Load trained model
-model_path = "random_forest_model.joblib"
+# Load model yang sudah disimpan
+model_path = "random_forest_model.pkl"
+rf_model = joblib.load(model_path)
 
-try:
-    model = load(model_path)  # Memuat model dengan joblib
-    model_loaded = True
-except Exception as e:
-    model_loaded = False
-    error_message = str(e)
+# Judul aplikasi
+st.title("Atlet Performance Classifier")
+st.write("Masukkan nilai fitur untuk memprediksi kategori atlet (Beginner, Intermediate, Advance).")
 
-# Streamlit UI
-st.title("Athlete Classification using Random Forest")
-st.write("Enter the required values to classify the athlete's performance.")
-
-# Input fields
+# Input fitur
 leg_power = st.number_input("Leg Power", min_value=0.0, format="%.2f")
 hand_power = st.number_input("Hand Power", min_value=0.0, format="%.2f")
-endurance = st.number_input("Endurance (VO2 Max)", min_value=0.0, format="%.2f")
+endurance = st.number_input("Endurance (Vo2 max)", min_value=0.0, format="%.2f")
 speed = st.number_input("Speed", min_value=0.0, format="%.2f")
 
-# Predict button
-if st.button("Classify Athlete"):
-    if model_loaded:
-        # Convert inputs to NumPy array
-        input_data = np.array([[leg_power, hand_power, endurance, speed]])
-        
-        # Make prediction
-        prediction = model.predict(input_data)
-        
-        # Display result
-        st.success(f"The athlete's classification is: **{prediction[0]}**")
-    else:
-        st.error(f"❌ Error loading model: {error_message}")
+# Tombol prediksi
+if st.button("Prediksi Kategori"):
+    input_features = np.array([[leg_power, hand_power, endurance, speed]])
+    prediction = rf_model.predict(input_features)[0]
+    st.success(f"Kategori Atlet: {prediction}")
