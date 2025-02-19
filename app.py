@@ -26,13 +26,20 @@ def load_data():
     df['Hand Power'] = df['Hand Grip kanan'] / df['Hand Grip Kiri']
     df['Speed'] = 20 / df['Kecepatan']
     
+    # Pastikan kategori klasifikasi dibuat sebelum encoding
+    df['Overall Category'] = df[['Endurance Category', 'Speed Category','Leg Power Category','Hand Power Category']].mode(axis=1)[0]
+    
     return df
 
 # Encode Target Label
 def encode_labels(df):
-    label_encoder = LabelEncoder()
-    df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category'])
-    return df, label_encoder
+    if 'Overall Category' in df.columns:
+        label_encoder = LabelEncoder()
+        df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category'])
+        return df, label_encoder
+    else:
+        st.error("Kolom 'Overall Category' tidak ditemukan dalam dataset. Pastikan semua kategori telah dihitung dengan benar.")
+        return df, None
 
 # Train Model with KFold
 def train_model(df):
@@ -60,20 +67,22 @@ def train_model(df):
 # Load and preprocess data
 df = load_data()
 df, label_encoder = encode_labels(df)
-model, scaler = train_model(df)
 
-# Streamlit UI
-st.title("Klasifikasi Tingkat Atlet")
-st.write("Masukkan nilai untuk menentukan tingkat atlet: Beginner, Intermediate, atau Advanced")
+if label_encoder is not None:
+    model, scaler = train_model(df)
 
-leg_power = st.number_input("Leg Power", min_value=0.0, max_value=500.0, step=0.1)
-hand_power = st.number_input("Hand Power", min_value=0.0, max_value=5.0, step=0.01)
-endurance = st.number_input("VO2 Max", min_value=0.0, max_value=100.0, step=0.1)
-speed = st.number_input("Speed", min_value=0.0, max_value=10.0, step=0.01)
+    # Streamlit UI
+    st.title("Klasifikasi Tingkat Atlet")
+    st.write("Masukkan nilai untuk menentukan tingkat atlet: Beginner, Intermediate, atau Advanced")
 
-if st.button("Klasifikasikan"):
-    input_data = np.array([[leg_power, hand_power, speed, endurance]])
-    input_data_scaled = scaler.transform(input_data)
-    prediction_encoded = model.predict(input_data_scaled)[0]
-    prediction = label_encoder.inverse_transform([prediction_encoded])[0]
-    st.write(f"Hasil Klasifikasi: **{prediction}**")
+    leg_power = st.number_input("Leg Power", min_value=0.0, max_value=500.0, step=0.1)
+    hand_power = st.number_input("Hand Power", min_value=0.0, max_value=5.0, step=0.01)
+    endurance = st.number_input("VO2 Max", min_value=0.0, max_value=100.0, step=0.1)
+    speed = st.number_input("Speed", min_value=0.0, max_value=10.0, step=0.01)
+
+    if st.button("Klasifikasikan"):
+        input_data = np.array([[leg_power, hand_power, speed, endurance]])
+        input_data_scaled = scaler.transform(input_data)
+        prediction_encoded = model.predict(input_data_scaled)[0]
+        prediction = label_encoder.inverse_transform([prediction_encoded])[0]
+        st.write(f"Hasil Klasifikasi: **{prediction}**")
