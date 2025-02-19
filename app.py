@@ -87,6 +87,7 @@ st.title("Klasifikasi Atlet berdasarkan Tes Fisik")
 leg_power = st.number_input("Masukkan Leg Power", min_value=0.0, format="%.2f")
 hand_power = st.number_input("Masukkan Hand Power", min_value=0.0, format="%.2f")
 speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f")
+endurance = st.number_input("Masukkan Endurance", min_value=0.0, format="%.2f")
 
 if st.button("Klasifikasikan"):
     input_data = np.array([[leg_power, hand_power, speed]])
