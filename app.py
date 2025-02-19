@@ -29,61 +29,23 @@ def load_data():
     df['Speed'] = 20 / df['Kecepatan']
     
     # Klasifikasi berdasarkan kategori
-    def classify_vo2max(row):
-        if row['Gender'] == 'Pria':
-            if row['Vo2 max'] <= 24:
-                return 'Beginner'
-            elif 25 <= row['Vo2 max'] <= 36:
-                return 'Intermediate'
-            elif 37 <= row['Vo2 max'] < 50:
-                return 'Advanced'
-        elif row['Gender'] == 'Wanita':
-            if row['Vo2 max'] <= 22:
-                return 'Beginner'
-            elif 23 <= row['Vo2 max'] <= 33:
-                return 'Intermediate'
-            elif 34 <= row['Vo2 max'] < 46:
-                return 'Advanced'
-        return 'Uncategorized'
-    df['Endurance Category'] = df.apply(classify_vo2max, axis=1)
+    def classify_category(value, thresholds):
+        if value <= thresholds[0]:
+            return 'Beginner'
+        elif value <= thresholds[1]:
+            return 'Intermediate'
+        else:
+            return 'Advanced'
     
-    def classify_speed(row):
-        if row['Gender'] == 'Pria':
-            if row['Speed'] >= 3.70:
-                return 'Beginner'
-            elif 3.31 <= row['Speed'] < 3.50:
-                return 'Intermediate'
-            elif row['Speed'] < 3.11:
-                return 'Advanced'
-        elif row['Gender'] == 'Wanita':
-            if row['Speed'] >= 3.90:
-                return 'Beginner'
-            elif 3.51 <= row['Speed'] < 3.70:
-                return 'Intermediate'
-            elif row['Speed'] < 3.50:
-                return 'Advanced'
-        return 'Uncategorized'
-    df['Speed Category'] = df.apply(classify_speed, axis=1)
+    thresholds_leg_power = [df['Leg Power'].quantile(0.33), df['Leg Power'].quantile(0.66)]
+    thresholds_hand_power = [df['Hand Power'].quantile(0.33), df['Hand Power'].quantile(0.66)]
+    thresholds_speed = [df['Speed'].quantile(0.33), df['Speed'].quantile(0.66)]
     
-    def classify_leg_power(row):
-        leg_power = row['Leg Power']
-        if row['Gender'] == 'Pria':
-            if leg_power >= 79:
-                return 'Advanced'
-            elif 65 <= leg_power < 79:
-                return 'Intermediate'
-            else:
-                return 'Beginner'
-        elif row['Gender'] == 'Wanita':
-            if leg_power >= 59:
-                return 'Advanced'
-            elif 49 <= leg_power < 59:
-                return 'Intermediate'
-            else:
-                return 'Beginner'
-    df['Leg Power Category'] = df.apply(classify_leg_power, axis=1)
+    df['Leg Power Category'] = df['Leg Power'].apply(lambda x: classify_category(x, thresholds_leg_power))
+    df['Hand Power Category'] = df['Hand Power'].apply(lambda x: classify_category(x, thresholds_hand_power))
+    df['Speed Category'] = df['Speed'].apply(lambda x: classify_category(x, thresholds_speed))
     
-    df['Overall Category'] = df[['Endurance Category', 'Speed Category', 'Leg Power Category']].mode(axis=1)[0]
+    df['Overall Category'] = df[['Leg Power Category', 'Hand Power Category', 'Speed Category']].mode(axis=1)[0]
     label_encoder = LabelEncoder()
     df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category'])
     return df
@@ -107,10 +69,10 @@ def train_model(df):
         model = RandomForestClassifier(n_estimators=30, max_depth=3, min_samples_split=30, min_samples_leaf=15, max_features="sqrt", bootstrap=True, class_weight='balanced', random_state=42)
         model.fit(X_train_fold, y_train_fold)
     
-    return model
+    return model, label_encoder
 
 # Fungsi untuk prediksi klasifikasi
-def predict_category(model):
+def predict_category(model, label_encoder):
     st.write("### Prediksi Kategori Atlet")
     leg_power = st.number_input("Leg Power", min_value=0.0, format="%.2f")
     hand_power = st.number_input("Hand Power", min_value=0.0, format="%.2f")
@@ -119,15 +81,16 @@ def predict_category(model):
     
     if st.button("Prediksi Kategori"):
         input_data = np.array([[leg_power, hand_power, speed, vo2_max]])
-        prediction = model.predict(input_data)
-        st.success(f"Kategori Atlet: {prediction[0]}")
+        prediction_numeric = model.predict(input_data)[0]
+        prediction_label = label_encoder.inverse_transform([prediction_numeric])[0]
+        st.success(f"Kategori Atlet: {prediction_label}")
 
 # Main function untuk aplikasi Streamlit
 def main():
     st.title("Klasifikasi Atlet Berdasarkan Performa")
     df = load_data()
-    model = train_model(df)
-    predict_category(model)
+    model, label_encoder = train_model(df)
+    predict_category(model, label_encoder)
 
 if __name__ == "__main__":
     main()
