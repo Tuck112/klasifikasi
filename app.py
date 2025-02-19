@@ -1,16 +1,11 @@
 import streamlit as st
-import json
+import joblib
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 
-# Load model dari JSON
+# Load model dari pkl
 try:
-    model_path = "random_forest_model.json"
-    with open(model_path, "r") as f:
-        rf_model_params = json.load(f)
-    
-    # Buat ulang model Random Forest dari JSON
-    rf_model = RandomForestClassifier(**rf_model_params)
+    model_path = "random_forest_model_final.pkl"
+    rf_model = joblib.load(model_path)
 except Exception as e:
     st.error(f"Error loading model: {e}")
     rf_model = None
