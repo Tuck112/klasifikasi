@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 
 # Load trained model
-with open("random_forest_model.pkl", "rb") as file:
+with open("random_forest_model.joblib", "rb") as file:
     model = pickle.load(file)
 
 # Streamlit UI
