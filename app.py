@@ -4,15 +4,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Fungsi untuk memuat dan membersihkan data
 def load_data():
     df = pd.read_csv('Hasil_Tes_Atlet_Porda.csv', delimiter=';', encoding='utf-8')
-    df = df[['Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan']].copy()
+    df = df[['Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan', 'Berat Badan', 'Vo2 max', 'Gender']].copy()
     
     # Membersihkan data dari karakter non-numerik
-    for col in ['Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan']:
+    for col in ['Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan', 'Berat Badan', 'Vo2 max']:
         df[col] = df[col].astype(str).str.replace(',', '.', regex=True)  # Ganti koma ke titik
         df[col] = df[col].str.replace(r'[^0-9.]', '', regex=True)  # Hapus karakter selain angka dan titik
         df[col] = pd.to_numeric(df[col], errors='coerce')  # Konversi ke numerik, NaN jika gagal
@@ -20,62 +22,102 @@ def load_data():
     # Mengisi nilai kosong dengan median
     df.fillna(df.median(), inplace=True)
     
-    # Menambahkan fitur "Hand Power Endurance"
-    df['Hand Power Endurance'] = (df['Hand Grip kanan'] + df['Hand Grip Kiri']) / 2
-    df = df[['Power Otot Tungkai', 'Hand Power Endurance', 'Kecepatan']]
+    # Perhitungan fitur tambahan
+    df['Leg Power'] = (2.21 * df['Berat Badan'] * (df['Power Otot Tungkai'] / 100))
+    df['Hand Power'] = df['Hand Grip kanan'] / df['Hand Grip Kiri']
+    df['Speed'] = 20 / df['Kecepatan']
     
-    # Menentukan kategori berdasarkan kuartil
-    df['Score'] = df.mean(axis=1)
-    q1, q3 = df['Score'].quantile([0.25, 0.75])
-    df['Category'] = df['Score'].apply(lambda x: 'Beginner' if x <= q1 else ('Intermediate' if x <= q3 else 'Advance'))
-    df.drop(columns=['Score'], inplace=True)
+    # Klasifikasi berdasarkan kategori
+    def classify_vo2max(row):
+        if row['Gender'] == 'Pria':
+            if row['Vo2 max'] <= 24:
+                return 'Beginner'
+            elif 25 <= row['Vo2 max'] <= 36:
+                return 'Intermediate'
+            elif 37 <= row['Vo2 max'] < 50:
+                return 'Advanced'
+        elif row['Gender'] == 'Wanita':
+            if row['Vo2 max'] <= 22:
+                return 'Beginner'
+            elif 23 <= row['Vo2 max'] <= 33:
+                return 'Intermediate'
+            elif 34 <= row['Vo2 max'] < 46:
+                return 'Advanced'
+        return 'Uncategorized'
+    df['Endurance Category'] = df.apply(classify_vo2max, axis=1)
+    
+    def classify_speed(row):
+        if row['Gender'] == 'Pria':
+            if row['Speed'] >= 3.70:
+                return 'Beginner'
+            elif 3.31 <= row['Speed'] < 3.50:
+                return 'Intermediate'
+            elif row['Speed'] < 3.11:
+                return 'Advanced'
+        elif row['Gender'] == 'Wanita':
+            if row['Speed'] >= 3.90:
+                return 'Beginner'
+            elif 3.51 <= row['Speed'] < 3.70:
+                return 'Intermediate'
+            elif row['Speed'] < 3.50:
+                return 'Advanced'
+        return 'Uncategorized'
+    df['Speed Category'] = df.apply(classify_speed, axis=1)
+    
+    def classify_leg_power(row):
+        leg_power = row['Leg Power']
+        if row['Gender'] == 'Pria':
+            if leg_power >= 79:
+                return 'Advanced'
+            elif 65 <= leg_power < 79:
+                return 'Intermediate'
+            else:
+                return 'Beginner'
+        elif row['Gender'] == 'Wanita':
+            if leg_power >= 59:
+                return 'Advanced'
+            elif 49 <= leg_power < 59:
+                return 'Intermediate'
+            else:
+                return 'Beginner'
+    df['Leg Power Category'] = df.apply(classify_leg_power, axis=1)
+    
+    df['Overall Category'] = df[['Endurance Category', 'Speed Category', 'Leg Power Category']].mode(axis=1)[0]
+    label_encoder = LabelEncoder()
+    df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category'])
     return df
-
-# Fungsi untuk menampilkan statistik deskriptif
-def display_data_statistics(df):
-    st.write("### Data Head")
-    st.write(df.head())
-    st.write("### Data Shape")
-    st.write(df.shape)
-    st.write("### Data Description")
-    st.write(df.describe())
-
-# Fungsi untuk menampilkan plot
-def display_plots(df):
-    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-    sns.histplot(df['Power Otot Tungkai'], ax=ax[0], kde=True)
-    ax[1].boxplot(df['Power Otot Tungkai'])
-    st.pyplot(fig)
-    
-    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-    sns.histplot(df['Hand Power Endurance'], ax=ax[0], kde=True)
-    ax[1].boxplot(df['Hand Power Endurance'])
-    st.pyplot(fig)
-    
-    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
-    sns.histplot(df['Kecepatan'], ax=ax[0], kde=True)
-    ax[1].boxplot(df['Kecepatan'])
-    st.pyplot(fig)
 
 # Fungsi untuk melatih model
 def train_model(df):
-    X = df[['Power Otot Tungkai', 'Hand Power Endurance', 'Kecepatan']]
-    y = df['Category']
+    features = df[['Leg Power', 'Hand Power', 'Speed', 'Vo2 max']]
+    target = df['Overall Category Encoded']
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
+    scaler = StandardScaler()
+    features_scaled = scaler.fit_transform(features)
+    
+    N = len(features_scaled)
+    k = min(10, max(2, int(np.sqrt(N))))
+    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    
+    for train_index, test_index in kf.split(features_scaled):
+        X_train_fold, X_test_fold = features_scaled[train_index], features_scaled[test_index]
+        y_train_fold, y_test_fold = target.iloc[train_index], target.iloc[test_index]
+        
+        model = RandomForestClassifier(n_estimators=30, max_depth=3, min_samples_split=30, min_samples_leaf=15, max_features="sqrt", bootstrap=True, class_weight='balanced', random_state=42)
+        model.fit(X_train_fold, y_train_fold)
+    
     return model
 
 # Fungsi untuk prediksi klasifikasi
 def predict_category(model):
     st.write("### Prediksi Kategori Atlet")
-    leg_power = st.number_input("Leg Power (cm)", min_value=0.0, format="%.2f")
-    hand_power_endurance = st.number_input("Hand Power Endurance", min_value=0.0, format="%.2f")
-    speed = st.number_input("Speed (detik)", min_value=0.0, format="%.2f")
+    leg_power = st.number_input("Leg Power", min_value=0.0, format="%.2f")
+    hand_power = st.number_input("Hand Power", min_value=0.0, format="%.2f")
+    speed = st.number_input("Speed", min_value=0.0, format="%.2f")
+    vo2_max = st.number_input("Vo2 Max", min_value=0.0, format="%.2f")
     
     if st.button("Prediksi Kategori"):
-        input_data = np.array([[leg_power, hand_power_endurance, speed]])
+        input_data = np.array([[leg_power, hand_power, speed, vo2_max]])
         prediction = model.predict(input_data)
         st.success(f"Kategori Atlet: {prediction[0]}")
 
@@ -83,8 +125,6 @@ def predict_category(model):
 def main():
     st.title("Klasifikasi Atlet Berdasarkan Performa")
     df = load_data()
-    display_data_statistics(df)
-    display_plots(df)
     model = train_model(df)
     predict_category(model)
 
