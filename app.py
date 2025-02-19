@@ -8,7 +8,7 @@ print("Scikit-learn version:", sklearn.__version__)
 
 # Load model yang sudah disimpan
 try:
-    model_path = "random_forest_model_v2.pkl"
+    model_path = "random_forest_model_fixed.pkl"
     rf_model = joblib.load(model_path)
 except Exception as e:
     st.error(f"Error loading model: {e}")
