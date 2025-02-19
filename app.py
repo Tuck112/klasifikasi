@@ -26,7 +26,10 @@ def load_data():
 # Fungsi untuk melatih model
 def train_model(data):
     features = data[['Leg Power', 'Hand Power', 'Speed', 'Vo2 max']]
-    target = data['Overall Category']
+    target = data['Overall Category'] if 'Overall Category' in data.columns else None
+    
+    if target is None:
+        raise KeyError("Kolom 'Overall Category' tidak ditemukan dalam data. Pastikan preprocessing sudah benar.")
     
     # Encoding target
     label_encoder = LabelEncoder()
