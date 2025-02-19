@@ -11,11 +11,14 @@ def load_data():
     df = pd.read_csv('Hasil_Tes_Atlet_Porda.csv', delimiter=';', encoding='utf-8')
     df = df[['Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan']].copy()
     
-    # Membersihkan data
-    df['Power Otot Tungkai'] = df['Power Otot Tungkai'].astype(str).str.replace(',', '.').astype(float)
-    df['Hand Grip kanan'] = df['Hand Grip kanan'].astype(str).str.replace(',', '.').astype(float)
-    df['Hand Grip Kiri'] = df['Hand Grip Kiri'].astype(str).str.replace(',', '.').astype(float)
-    df['Kecepatan'] = df['Kecepatan'].astype(str).str.replace(',', '.').astype(float)
+    # Membersihkan data dari karakter non-numerik
+    for col in ['Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan']:
+        df[col] = df[col].astype(str).str.replace(',', '.', regex=True)  # Ganti koma ke titik
+        df[col] = df[col].str.replace(r'[^0-9.]', '', regex=True)  # Hapus karakter selain angka dan titik
+        df[col] = pd.to_numeric(df[col], errors='coerce')  # Konversi ke numerik, NaN jika gagal
+    
+    # Mengisi nilai kosong dengan median
+    df.fillna(df.median(), inplace=True)
     
     # Menambahkan fitur "Hand Power Endurance"
     df['Hand Power Endurance'] = (df['Hand Grip kanan'] + df['Hand Grip Kiri']) / 2
