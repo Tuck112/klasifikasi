@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 
 # Load model Random Forest yang sudah dilatih
-model_filename = "random_forest.pkl"  # Pastikan file ini tersedia
+model_filename = "random_forest_model.pkl"  # Pastikan file ini tersedia
 with open(model_filename, "rb") as file:
     model = pickle.load(file)
 
