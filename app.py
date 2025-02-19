@@ -28,8 +28,16 @@ def load_data():
     df['Hand Power'] = df['Hand Grip kanan'] / df['Hand Grip Kiri']
     df['Speed'] = 20 / df['Kecepatan']
     
-    # Klasifikasi berdasarkan kategori
-    def classify_category(value, thresholds):
+    df['Overall Category'] = df[['Leg Power', 'Hand Power', 'Speed']].mean(axis=1)
+    return df
+
+# Fungsi untuk melatih model
+def train_model(df):
+    features = df[['Leg Power', 'Hand Power', 'Speed', 'Vo2 max']]
+    
+    # Kategorisasi berdasarkan kuartil
+    thresholds = [df['Overall Category'].quantile(0.33), df['Overall Category'].quantile(0.66)]
+    def classify_category(value):
         if value <= thresholds[0]:
             return 'Beginner'
         elif value <= thresholds[1]:
@@ -37,22 +45,11 @@ def load_data():
         else:
             return 'Advanced'
     
-    thresholds_leg_power = [df['Leg Power'].quantile(0.33), df['Leg Power'].quantile(0.66)]
-    thresholds_hand_power = [df['Hand Power'].quantile(0.33), df['Hand Power'].quantile(0.66)]
-    thresholds_speed = [df['Speed'].quantile(0.33), df['Speed'].quantile(0.66)]
+    df['Overall Category Label'] = df['Overall Category'].apply(classify_category)
     
-    df['Leg Power Category'] = df['Leg Power'].apply(lambda x: classify_category(x, thresholds_leg_power))
-    df['Hand Power Category'] = df['Hand Power'].apply(lambda x: classify_category(x, thresholds_hand_power))
-    df['Speed Category'] = df['Speed'].apply(lambda x: classify_category(x, thresholds_speed))
-    
-    df['Overall Category'] = df[['Leg Power Category', 'Hand Power Category', 'Speed Category']].mode(axis=1)[0]
+    # Encoding kategori menjadi angka
     label_encoder = LabelEncoder()
-    df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category'])
-    return df
-
-# Fungsi untuk melatih model
-def train_model(df):
-    features = df[['Leg Power', 'Hand Power', 'Speed', 'Vo2 max']]
+    df['Overall Category Encoded'] = label_encoder.fit_transform(df['Overall Category Label'])
     target = df['Overall Category Encoded']
     
     scaler = StandardScaler()
