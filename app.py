@@ -106,11 +106,12 @@ st.subheader("Masukkan data atlet untuk mendapatkan hasil klasifikasi")
 
 with st.form("classification_form"):
     gender = st.selectbox("Pilih Gender", ["Pria", "Wanita"], index=None, placeholder="Pilih jenis kelamin")
-    leg_power = st.number_input("Masukkan Leg Power", placeholder="Masukkan nilai Leg Power")
-    hand_power = st.number_input("Masukkan Hand Power", placeholder="Masukkan nilai Hand Power")
-    speed = st.number_input("Masukkan Speed", placeholder="Masukkan nilai Speed")
-    endurance = st.number_input("Masukkan Endurance (Vo2 max)", placeholder="Masukkan nilai Endurance")
+    leg_power = st.number_input("Masukkan Leg Power", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Leg Power")
+    hand_power = st.number_input("Masukkan Hand Power", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Hand Power")
+    speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Speed")
+    endurance = st.number_input("Masukkan Endurance (Vo2 max)", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Endurance")
     submit_button = st.form_submit_button("🔍 Klasifikasikan")
+
 
 if submit_button:
     input_data = np.array([[leg_power, hand_power, speed, endurance]])
