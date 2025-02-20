@@ -90,22 +90,72 @@ data = load_data()
 model, scaler, label_encoder = train_model(data)
 
 # Streamlit UI
+import streamlit as st
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+
+# Fungsi untuk memuat dan membersihkan data
+def load_data():
+    file_path = "Hasil_Tes_Atlet_Porda.csv"
+    data = pd.read_csv(file_path, delimiter=";", encoding="utf-8")
+    
+    # Konversi tipe data numerik
+    columns_to_convert = ['Berat Badan', 'Power Otot Tungkai', 'Hand Grip kanan', 'Hand Grip Kiri', 'Kecepatan', 'Vo2 max']
+    for col in columns_to_convert:
+        data[col] = data[col].astype(str).str.replace(',', '.', regex=True)
+        data[col] = data[col].str.replace(r'[^0-9.]', '', regex=True)
+        data[col] = pd.to_numeric(data[col], errors='coerce').fillna(0)
+    
+    # Hitung fitur
+    data['Leg Power'] = 2.21 * data['Berat Badan'] * (data['Power Otot Tungkai'] / 100)
+    data['Hand Power'] = data['Hand Grip kanan'] / data['Hand Grip Kiri']
+    data['Speed'] = 20 / data['Kecepatan']
+    
+    return data
+
+# Fungsi untuk melatih model
+def train_model(data):
+    features = data[['Leg Power', 'Hand Power', 'Speed', 'Vo2 max']]
+    target = data['Overall Category']
+    
+    # Encoding target
+    label_encoder = LabelEncoder()
+    target_encoded = label_encoder.fit_transform(target)
+    
+    # Normalisasi fitur
+    scaler = StandardScaler()
+    features_scaled = scaler.fit_transform(features)
+    
+    # Model Random Forest
+    model = RandomForestClassifier(n_estimators=30, max_depth=3, random_state=42)
+    model.fit(features_scaled, target_encoded)
+    
+    return model, scaler, label_encoder
+
+# Load data dan latih model
+data = load_data()
+model, scaler, label_encoder = train_model(data)
+
+# Streamlit UI
 st.set_page_config(page_title="Klasifikasi Atlet", page_icon="🏅", layout="centered")
 
-st.markdown("""
+st.markdown(
+    """
     <style>
-        .main {background-color: #f8f9fa;}
+        .stApp {
+            background-image: url("https://www.shutterstock.com/image-vector/sport-fitness-seamless-pattern-gym-260nw-789148235.jpg");
+            background-size: cover;
+            background-position: center;
+        }
         h1 {color: #2E86C1; text-align: center;}
         .stButton>button {background-color: #2E86C1; color: white; padding: 10px; font-size: 16px; border-radius: 10px;}
         .stButton>button:hover {background-color: #1B4F72;}
-        
-        /* Background Image */
-        .stApp {
-            background: url("https://source.unsplash.com/1600x900/?sports,fitness") no-repeat center center fixed;
-            background-size: cover;
-        }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 st.title("🏋️ Klasifikasi Atlet berdasarkan Tes Fisik")
 st.subheader("Masukkan data atlet untuk mendapatkan hasil klasifikasi")
@@ -125,5 +175,3 @@ if submit_button:
     predicted_category = label_encoder.inverse_transform(prediction)[0]
     
     st.markdown(f"<h3 style='text-align: center; color: green;'>Hasil Klasifikasi: {predicted_category}</h3>", unsafe_allow_html=True)
-    
-    st.balloons()
