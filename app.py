@@ -130,4 +130,4 @@ if submit_button:
     
     st.markdown(f"<h3 style='text-align: center; color: green;'>Hasil Klasifikasi: {predicted_category}</h3>", unsafe_allow_html=True)
     
-    st.snow()
+st.success("Berhasil!")
