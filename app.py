@@ -93,7 +93,7 @@ data = load_data()
 model, scaler, label_encoder = train_model(data)
 
 # Streamlit UI
-st.set_page_config(page_title="Klasifikasi Atlet", page_icon="🏅", layout="centered")
+st.set_page_config(page_title="Klasifikasi Atlet", page_icon="🏅", layout="wide")
 
 st.markdown(
     """
@@ -102,16 +102,37 @@ st.markdown(
             background-image: url("https://images.unsplash.com/photo-1571019614242-c5c5dee9ae8a");
             background-size: cover;
             background-position: center;
+            background-attachment: fixed;
         }
-        h1 {color: #2E86C1; text-align: center;}
-        .stButton>button {background-color: #2E86C1; color: white; padding: 10px; font-size: 16px; border-radius: 10px;}
-        .stButton>button:hover {background-color: #1B4F72;}
+        .title-container {
+            text-align: center;
+            color: white;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+        }
+        h1 {color: #F4D03F;}
+        .stButton>button {
+            background-color: #F4D03F;
+            color: black;
+            font-size: 18px;
+            padding: 12px;
+            border-radius: 10px;
+            width: 100%;
+        }
+        .stButton>button:hover {
+            background-color: #D4AC0D;
+        }
+        .stTextInput>div>div>input {
+            border-radius: 10px;
+            padding: 10px;
+        }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title("🏋️ Klasifikasi Atlet berdasarkan Tes Fisik")
+st.markdown("<div class='title-container'><h1>🏋️ Klasifikasi Atlet berdasarkan Tes Fisik</h1></div>", unsafe_allow_html=True)
 st.subheader("Masukkan data atlet untuk mendapatkan hasil klasifikasi")
 
 with st.form("classification_form"):
@@ -128,5 +149,8 @@ if submit_button:
     prediction = model.predict(input_scaled)
     predicted_category = label_encoder.inverse_transform(prediction)[0]
     
-    st.markdown(f"<h3 style='text-align: center; color: green;'>Hasil Klasifikasi: {predicted_category}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; color: white; background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 10px;'>Hasil Klasifikasi: {predicted_category}</h3>", unsafe_allow_html=True)
+    
+    st.success("Klasifikasi berhasil dilakukan! 🚀")
+
     
