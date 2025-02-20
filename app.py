@@ -98,6 +98,12 @@ st.markdown("""
         h1 {color: #2E86C1; text-align: center;}
         .stButton>button {background-color: #2E86C1; color: white; padding: 10px; font-size: 16px; border-radius: 10px;}
         .stButton>button:hover {background-color: #1B4F72;}
+        
+        /* Background Image */
+        .stApp {
+            background: url("https://source.unsplash.com/1600x900/?sports,fitness") no-repeat center center fixed;
+            background-size: cover;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -111,7 +117,6 @@ with st.form("classification_form"):
     speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Speed")
     endurance = st.number_input("Masukkan Endurance (Vo2 max)", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Endurance")
     submit_button = st.form_submit_button("🔍 Klasifikasikan")
-
 
 if submit_button:
     input_data = np.array([[leg_power, hand_power, speed, endurance]])
