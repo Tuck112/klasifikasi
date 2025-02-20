@@ -95,6 +95,22 @@ model, scaler, label_encoder = train_model(data)
 # Streamlit UI
 st.set_page_config(page_title="Klasifikasi Atlet", page_icon="🏅", layout="centered")
 
+st.markdown(
+    """
+    <style>
+        .stApp {
+            background-image: url("https://images.unsplash.com/photo-1571019614242-c5c5dee9ae8a");
+            background-size: cover;
+            background-position: center;
+        }
+        h1 {color: #2E86C1; text-align: center;}
+        .stButton>button {background-color: #2E86C1; color: white; padding: 10px; font-size: 16px; border-radius: 10px;}
+        .stButton>button:hover {background-color: #1B4F72;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 st.title("🏋️ Klasifikasi Atlet berdasarkan Tes Fisik")
 st.subheader("Masukkan data atlet untuk mendapatkan hasil klasifikasi")
 
@@ -114,4 +130,4 @@ if submit_button:
     
     st.markdown(f"<h3 style='text-align: center; color: green;'>Hasil Klasifikasi: {predicted_category}</h3>", unsafe_allow_html=True)
     
-    st.balloons()
+    st.snow()
