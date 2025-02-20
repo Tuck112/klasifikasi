@@ -90,16 +90,34 @@ data = load_data()
 model, scaler, label_encoder = train_model(data)
 
 # Streamlit UI
-st.title("Klasifikasi Atlet berdasarkan Tes Fisik")
-gender = st.selectbox("Pilih Gender", ["Pria", "Wanita"])
-leg_power = st.number_input("Masukkan Leg Power", min_value=0.0, format="%.2f")
-hand_power = st.number_input("Masukkan Hand Power", min_value=0.0, format="%.2f")
-speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f")
-endurance = st.number_input("Masukkan Endurance (Vo2 max)", min_value=0.0, format="%.2f")
+st.set_page_config(page_title="Klasifikasi Atlet", page_icon="🏅", layout="centered")
 
-if st.button("Klasifikasikan"):
+st.markdown("""
+    <style>
+        .main {background-color: #f8f9fa;}
+        h1 {color: #2E86C1; text-align: center;}
+        .stButton>button {background-color: #2E86C1; color: white; padding: 10px; font-size: 16px; border-radius: 10px;}
+        .stButton>button:hover {background-color: #1B4F72;}
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("🏋️ Klasifikasi Atlet berdasarkan Tes Fisik")
+st.subheader("Masukkan data atlet untuk mendapatkan hasil klasifikasi")
+
+with st.form("classification_form"):
+    gender = st.selectbox("Pilih Gender", ["Pria", "Wanita"], index=None, placeholder="Pilih jenis kelamin")
+    leg_power = st.number_input("Masukkan Leg Power", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Leg Power")
+    hand_power = st.number_input("Masukkan Hand Power", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Hand Power")
+    speed = st.number_input("Masukkan Speed", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Speed")
+    endurance = st.number_input("Masukkan Endurance (Vo2 max)", min_value=0.0, format="%.2f", placeholder="Masukkan nilai Endurance")
+    submit_button = st.form_submit_button("🔍 Klasifikasikan")
+
+if submit_button:
     input_data = np.array([[leg_power, hand_power, speed, endurance]])
     input_scaled = scaler.transform(input_data)
     prediction = model.predict(input_scaled)
     predicted_category = label_encoder.inverse_transform(prediction)[0]
-    st.success(f"Hasil Klasifikasi: {predicted_category}")
+    
+    st.markdown(f"<h3 style='text-align: center; color: green;'>Hasil Klasifikasi: {predicted_category}</h3>", unsafe_allow_html=True)
+    
+    st.balloons()
